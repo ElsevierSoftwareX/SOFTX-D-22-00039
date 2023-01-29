@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Geographically Weighted Regression</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+<style type="text/css">.vembedr {
+margin-bottom: 10px;
+}
+.vembedr-rounded {
+display: inline-block;
+border-radius: 15px;
+overflow: hidden;
+}
+.vembedr-rounded iframe {
+display: block;
+border: none;
+}
+</style>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Geographically Weighted Regression</h1>
+
+
+
+<style>
+h1.title {font-size: 18pt; color: DarkBlue;} 
+body, h1, h2, h3, h4 {font-family: "Palatino", serif;}
+body {font-size: 12pt;}
+/* Headers */
+h1,h2,h3,h4,h5,h6{font-size: 14pt; color: #00008B;}
+body {color: #333333;}
+a, a:hover {color: #8B3A62;}
+pre {font-size: 12px;}
+</style>
+<div id="module-description" class="section level1">
+<h1>Module Description</h1>
+<p>This module contain functions for basic and Robust GWR, generalised
+GWR, Heterocedastic GWR, Mixed GWR, Scalable GWR and Local collinearity
+diagnostics for basic GWR.</p>
+</div>
+<div id="argument" class="section level1">
+<h1>Argument</h1>
+<table style="width:100%;">
+<colgroup>
+<col width="24%" />
+<col width="8%" />
+<col width="10%" />
+<col width="16%" />
+<col width="19%" />
+<col width="8%" />
+<col width="12%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Argument</th>
+<th align="center">Basic</th>
+<th align="center">Robust</th>
+<th align="center">Generalized</th>
+<th align="center">Heterocedastic</th>
+<th align="center">Mixed</th>
+<th align="center">Scalable</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Dependient</code></td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+</tr>
+<tr class="even">
+<td><code>Independient</code></td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+</tr>
+<tr class="odd">
+<td><code>Family</code></td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">✔</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+<tr class="even">
+<td><code>Cv</code></td>
+<td align="center">✔</td>
+<td align="center">x</td>
+<td align="center">✔</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+<tr class="odd">
+<td><code>Kernel</code></td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+</tr>
+<tr class="even">
+<td><code>Power</code></td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+</tr>
+<tr class="odd">
+<td><code>Theta</code></td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+</tr>
+<tr class="even">
+<td><code>Longlat</code></td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+</tr>
+<tr class="odd">
+<td><code>Adaptive</code></td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">x</td>
+</tr>
+<tr class="even">
+<td><code>Distance bandwidth</code></td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">✔</td>
+<td align="center">x</td>
+</tr>
+<tr class="odd">
+<td><code>Max iter</code></td>
+<td align="center">x</td>
+<td align="center">✔</td>
+<td align="center">x</td>
+<td align="center">✔</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+<tr class="even">
+<td><code>Fixed</code></td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">✔</td>
+<td align="center">x</td>
+</tr>
+<tr class="odd">
+<td><code>Intercep fixed</code></td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">✔</td>
+<td align="center">x</td>
+</tr>
+<tr class="even">
+<td><code>Diagnostic</code></td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">✔</td>
+<td align="center">x</td>
+</tr>
+<tr class="odd">
+<td><code>F123</code></td>
+<td align="center">x</td>
+<td align="center">✔</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+<tr class="even">
+<td><code>Filtered</code></td>
+<td align="center">x</td>
+<td align="center">✔</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+<tr class="odd">
+<td><code>bw.adapt</code></td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">✔</td>
+</tr>
+<tr class="even">
+<td><code>Polynomial</code></td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">✔</td>
+</tr>
+</tbody>
+</table>
+<p>The same arguments are used in the Local collinearity diagnostics
+module as in the GWR Basic module, except for CV.</p>
+<p><code>Dependient</code>: Dependent variable of the regression
+model.</p>
+<p><code>Independient</code>: Independent(s) variable(s) of the
+regression model.</p>
+<p><code>Family</code>: a description of the model’s error distribution
+and link function, which can be “poisson” or “binomial”.</p>
+<p><code>Cv</code>: if TRUE, cross-validation data will be
+calculated</p>
+<p><code>Kernel</code> : A set of five commonly used kernel
+functions;</p>
+<p><code>Power (Minkowski distance)</code> : the power of the Minkowski
+distance (p=1 is manhattan distance, p=2 is euclidean distance).</p>
+<p><code>Theta (Angle in radians)</code> : an angle in radians to rotate
+the coordinate system, default is 0</p>
+<p><code>longlat</code> : if TRUE, great circle distances will be
+calculated</p>
+<p><code>Adaptive</code> :if TRUE calculate an adaptive kernel where the
+bandwidth (bw) corresponds to the number of nearest neighbours
+(i.e. adaptive distance); default is FALSE, where a fixed kernel is
+found (bandwidth is a fixed distance)</p>
+<p><code>Distance bandwidth</code> : bandwidth used in the weighting
+function. It has two options, <code>automatic</code> which is calculated
+in the Bandwidth selection module and <code>manual</code> in which the
+user enter the value.</p>
+<p><code>Max iter</code>: maximum number of iterations for the automatic
+approach</p>
+<p><code>Fixed</code>: independent variables that appeared in the
+formula that are to be treated as global</p>
+<p><code>Intercep fixed</code>: logical, if TRUE the intercept will be
+treated as global</p>
+<p><code>Diagnostic</code>: logical, if TRUE the diagnostics will be
+calculated</p>
+<p><code>F123</code>:default FALSE, otherwise calculate F-test
+results</p>
+<p><code>Filtered</code>: default FALSE, the automatic approach is used,
+if TRUE the filtered data approach is employed, as that described in
+Fotheringham et al [1]</p>
+<p><code>bw.adapt</code>: adaptive bandwidth (i.e. number of nearest
+neighbours) used for geographically weighting</p>
+<p><code>Polynomial</code>: degree of the polyunomial to approximate the
+kernel function</p>
+</div>
+<div id="value" class="section level1">
+<h1>Value</h1>
+<p>SDF a SpatialPointsDataFrame (may be gridded) or
+SpatialPolygonsDataFrame object (see package “sp”) integrated with
+fit.points,GWR coefficient estimates, predicted values, coefficient
+standard errors and t-values in its “data” slot.</p>
+<p>In the plot tab, the values obtained in the summary can be plotted,
+customized and downloaded in <code>.pdf</code> or <code>.png</code>.</p>
+</div>
+<div id="videos" class="section level1">
+<h1>Videos</h1>
+<div id="local-collinearity-diagnostics" class="section level2">
+<h2>Local collinearity diagnostics</h2>
+<div class="vembedr embed-responsive embed-responsive-16by9" align="center">
+<div class="vembedr-rounded">
+<iframe src="https://www.youtube.com/embed/4C8cy3C4BdE" width="533" height="300" frameborder="0" allowfullscreen data-external="1" class="embed-responsive-item"></iframe>
+</div>
+</div>
+<center>
+Video 1 : Local collinearity diagnostics for basic GWR
+</center>
+</div>
+<div id="basic-geographically-weighted-regression" class="section level2">
+<h2>Basic Geographically Weighted Regression</h2>
+<div class="vembedr embed-responsive embed-responsive-16by9" align="center">
+<div class="vembedr-rounded">
+<iframe src="https://www.youtube.com/embed/xylEzv97tzA" width="533" height="300" frameborder="0" allowfullscreen data-external="1" class="embed-responsive-item"></iframe>
+</div>
+</div>
+<center>
+Video 2 : Basic GWR
+</center>
+</div>
+<div id="robust-geographically-weighted-regression" class="section level2">
+<h2>Robust Geographically Weighted Regression</h2>
+<div class="vembedr embed-responsive embed-responsive-16by9" align="center">
+<div class="vembedr-rounded">
+<iframe src="https://www.youtube.com/embed/TV97oAzmlTU" width="533" height="300" frameborder="0" allowfullscreen data-external="1" class="embed-responsive-item"></iframe>
+</div>
+</div>
+<center>
+Video 3 : Robust GWR
+</center>
+</div>
+<div id="generalized-geographically-weighted-regression-ggwr" class="section level2">
+<h2>Generalized Geographically Weighted Regression (GGWR)</h2>
+<div class="vembedr embed-responsive embed-responsive-16by9" align="center">
+<div class="vembedr-rounded">
+<iframe src="https://www.youtube.com/embed/uVp-8_lsR_8" width="533" height="300" frameborder="0" allowfullscreen data-external="1" class="embed-responsive-item"></iframe>
+</div>
+</div>
+<center>
+Video 4 :Generalized GWR :
+</center>
+</div>
+<div id="heterocedastic-geographically-weighted-regression-hgwr" class="section level2">
+<h2>Heterocedastic Geographically Weighted Regression (HGWR)</h2>
+<div class="vembedr embed-responsive embed-responsive-16by9" align="center">
+<div class="vembedr-rounded">
+<iframe src="https://www.youtube.com/embed/3B8-ZHA-SEc" width="533" height="300" frameborder="0" allowfullscreen data-external="1" class="embed-responsive-item"></iframe>
+</div>
+</div>
+<center>
+Video 5 : Heterocedastic GWR
+</center>
+</div>
+<div id="mixed-geographically-weighted-regression-mgwr" class="section level2">
+<h2>Mixed Geographically Weighted Regression (MGWR)</h2>
+<div class="vembedr embed-responsive embed-responsive-16by9" align="center">
+<div class="vembedr-rounded">
+<iframe src="https://www.youtube.com/embed/ADUxeJK35CE" width="533" height="300" frameborder="0" allowfullscreen data-external="1" class="embed-responsive-item"></iframe>
+</div>
+</div>
+<center>
+Video 6 : Mixed GWR
+</center>
+</div>
+<div id="scalable-geographically-weighted-regression-sgwr" class="section level2">
+<h2>Scalable Geographically Weighted Regression (SGWR)</h2>
+<div class="vembedr embed-responsive embed-responsive-16by9" align="center">
+<div class="vembedr-rounded">
+<iframe src="https://www.youtube.com/embed/cjyhtvb0Dtg" width="533" height="300" frameborder="0" allowfullscreen data-external="1" class="embed-responsive-item"></iframe>
+</div>
+</div>
+<center>
+Video 7 : Scalable GWR
+</center>
+</div>
+</div>
+<div id="references" class="section level1">
+<h1>References</h1>
+<p>[1] Fotheringham S, Brunsdon, C, and Charlton, M (2002),
+<em>Geographically Weighted Regression: The Analysis of Spatially
+Varying Relationships</em>, John Wiley &amp; Sons,Chichester.</p>
+<p>[2] Belsley, D. A., Kuh, E., &amp; Welsch, R. E. (2005). Regression
+diagnostics: Identifying influential data and sources of collinearity.
+John Wiley &amp; Sons.</p>
+<p>[3] Wheeler, D., &amp; Tiefelsdorf, M. (2005). Multicollinearity and
+correlation among local regression coefficients in geographically
+weighted regression. Journal of Geographical Systems, 7(2), 161-187.</p>
+<p>[4] Wheeler, D.C., Diagnostic tools and a remedial method for
+collinearity in geographically weighted regression. Environment and
+Planning A 2007, 39, (10), 2464-2481.</p>
+<p>[5] Griffith, D.A., Spatial-filtering-based contributions to a
+critique of geographically weighted regression (GWR). Environment and
+Planning A 2008, 40, (11), 2751-2769.</p>
+<p>[6] Wheeler, D.; Waller, L., Comparing spatially varying coefficient
+models: a case study examining violent crime rates and their
+relationships to alcohol outlets and illegal drug arrests. Journal of
+Geographical Systems 2009, 11, (1), 1-22.</p>
+<p>[7] Wheeler, D.C., Simultaneous coefficient penalization and model
+selection in geographically weighted regression: the geographically
+weighted lasso. Environment and Planning A 2009, 41, (3), 722-742.</p>
+<p>[8] Gollini, I., Lu, B., Charlton, M., Brunsdon, C., &amp; Harris, P.
+(2015). GWmodel: An R Package for Exploring Spatial Heterogeneity Using
+Geographically Weighted Models. <em>Journal of Statistical
+Software</em>, 63(17), 1–50. <a href="https://doi.org/10.18637/jss.v063.i17" class="uri">https://doi.org/10.18637/jss.v063.i17</a></p>
+<p>[9] Oshan, T. M., Li, Z., Kang, W., Wolf, L. J., &amp; Fotheringham,
+A. S. (2019). mgwr: A Python implementation of multiscale geographically
+weighted regression for investigating process spatial heterogeneity and
+scale. ISPRS International Journal of Geo-Information, 8(6), 269.</p>
+<p>[10] Zou, H. and Hastie, T. 2005. Regularization and variable
+selection via the elastic net. Journal of the Royal Statistical Society:
+Series B, 672., pp.301-320.</p>
+<p>[11] Friedman J, Hastie T, Tibshirani R 2010. Regularization paths
+for generalized linear models via coordinate descent. Journal of
+Statistical Software 331:1–22</p>
+<p>[12] Dormann, C.F., J. Elith, S. Bacher, et al. 2013. Collinearity: a
+review of methods to deal with it and a simulation study evaluating
+their performance. Ecography 36: 27-46.</p>
+<p>[13] Comber, A., Brunsdon, C., Charlton, M., Dong, G., Harris, R.,
+Lu, B., … &amp; Harris, P. (2020). The GWR route map: a guide to the
+informed application of Geographically Weighted Regression. arXiv
+preprint arXiv:2004.06070.</p>
+<p>[14] Mei L-M, He S-Y, Fang K-T (2004) A note on the mixed
+geographically weighted regression model. <em>Journal of regional
+science</em> 44(1):143-157</p>
+<p>[15] Murakami, D., N. Tsutsumida, T. Yoshida, T. Nakaya &amp; B. Lu
+(2019) Scalable GWR: A linear-time algorithm for large-scale
+geographically weighted regression with polynomial kernels.
+arXiv:1905.00266</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
